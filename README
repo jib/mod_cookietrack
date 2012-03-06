@@ -20,7 +20,11 @@ This will build, install & enable the module on your system
 Create a C file or library that has a 'gen_uid' function with
 the following prototype:
 
-  void gen_uid( char *uid, char *input );
+  void gen_uid( char *uid, char *timestamp, char *ip );
+
+Where 'timestamp' is a 16 character microtime, 'ip' is the
+remote IP address and 'uid' is a char pointer for you to store
+the UID to use for this request.
 
 And then, build the module like this (any gcc linking target
 is acceptable):
@@ -51,14 +55,14 @@ Then, run the test suite:
 
 Run it as follows to enable diagnostic/debug output:
 
-  $ perl test/01_cookietrack.pl 1
+  $ perl test/01_cookietrack.pl --debug
 
 Note that if you're using a custom library for generating
 the UID, be sure to pass the length of the expected cookie
 as the second argument. So, if your library generates UIDs
-of 12 characters, use:
+of 12-16 characters, use:
 
-  $ perl test/01_cookietrack.pl 0 12
+  $ perl test/01_cookietrack.pl --cookielength 12,16
 
 There will be an error log available, and that will be
 especially useful if you built the library with --debug:
