@@ -131,7 +131,7 @@ configuration directives only.
 
 *** CookieName directive
     Syntax:	    CookieName token
-    Default:	CookieName Apache
+    Default:    CookieName Apache
 
     This directive allows you to change the name of the cookie this module uses for its
     tracking purposes. By default the cookie is named "Apache".
@@ -141,7 +141,7 @@ configuration directives only.
 
 *** CookieStyle directive
     Syntax:	    CookieStyle Netscape|Cookie|Cookie2|RFC2109|RFC2965
-    Default:	CookieStyle Netscape
+    Default:    CookieStyle Netscape
 
     This directive controls the format of the cookie header field. The three formats
     allowed are:
@@ -157,7 +157,7 @@ configuration directives only.
 
 *** CookieTracking directive
     Syntax:	    CookieTracking on|off
-    Default:	CookieTracking off
+    Default:    CookieTracking off
 
     When mod_cookietrack is loaded, and CookieTracking on is set, Apache will send a
     user-tracking cookie for all new requests. This directive can be used to turn this
