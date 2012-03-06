@@ -1,0 +1,231 @@
+######################
+### Introduction
+######################
+
+This module is a drop-in replacement for mod_usertrack (which can be
+found here: http://httpd.apache.org/docs/2.2/mod/mod_usertrack.html)
+and aims to fix a lot of the issues with it. In no particular order:
+
+* Rolling expires
+
+  mod_usertrack will set the expires value once and forget about it,
+  meaning that if the original period expires, you will have lost the
+  users token and must generate a new one.
+
+  mod_cookietrack addresses this by updating the expires value in a
+  rolling fashion; whenever a user comes back, their cookie is re-set
+  with the new expires window.
+
+* Setting cookie on incoming request
+
+  mod_usertrack does not set the cookie on the incoming request, only
+  on the outgoing request. This means your application doesn't know
+  what UUID to use for the first visit of a user.
+
+  mod_cookietrack addresses this by setting a 'Cookie:' header on the
+  incoming request if it's not already set, allowing your application
+  to transparently do the right thing.
+
+* Support for X-Forwarded-For (or alternate header)
+
+  mod_usertrack's UUID format is 'ClientIP.TimeStamp'; if the client
+  ip is a loadbalancer, or some other frontend end device, this will
+  always be the same IP (for example, 10.0.0.1) and does not add to
+  the uniqueness of the UUID.
+
+  mod_cookietrack addresses this by optionally looking at the a header
+  of your choosing (the industry standard is 'X-Forwarded-For') and
+  using the right most IP in that to determine the remote IP.
+
+* Support for non 2xx response codes
+
+  mod_usertrack only sets cookies on outgoing responses that are in the
+  2xx family; if your application returns a 302 for example, no cookie
+  is set.
+
+  mod_cookietrack addresses this by setting a cookie on all outgoing
+  responses, including 3xx, 4xx and 5xx.
+
+* Support for setting incoming & outgoing custom header
+
+  mod_usertrack only sets the outgoing cookie, making it impossible to
+  hash user content, or ease logging outside of Apache based on the UUID
+  generated. Inside Apache you can use the 'note' that is set with the
+  UUID.
+
+  mod_cookietrack addresses this by optionally setting and incoming and
+  outgoing header, which can be used to hash the request/response as well
+  as log the UUID more easily outside Apache, without needing to parse the
+  cookie header.
+
+* Do Not Track support (configurable)
+
+  mod_usertrack does not offer any support for Do Not Track (see here for
+  a definition: http://dnt.mozilla.org/) and will set cookies regardless
+  of the users Do Not Track settings.
+
+  mod_cookietrack addresses this by looking at the Do Not Track header
+  that is sent by the client and setting a "DNT" cookie with fixed expiry
+  value, making this an untrackable cookie. It still sets a cookie because
+  it is not possible to access the value of the Do Not Track header in
+  JavaScript from most browsers yet.
+
+  Note: this is the only addition that changes the behaviour compared to
+  mod_usertrack: Do Not Track will be complied with by default, you can
+  turn it off if you insist.
+
+* External UID library support
+
+  mod_usertrack uses a simple 'IPAdress.TimeStamp' format for it's UUIDs,
+  but in some cases your site may demand a more sophistaced UUID generation
+  algorithm.
+
+  mod_cookietrack addresses this by letting you optionally link to a custom
+  library to generate the UUID. See the README for details on how to do this.
+
+
+######################
+### Configuration
+######################
+
+Note: This module is a drop-in replacement for mod_usertrack, so all the
+configuration options mentioned in its documentation work as expected:
+
+  http://httpd.apache.org/docs/2.2/mod/mod_usertrack.html
+
+Note: All the directives can be either set in the server config, virtual host,
+directory or .htaccess sections of the configuration.
+
+The first section below is all the options that are supported by mod_usertrack
+as well as mod_cookietrack. The second section will have mod_cookietrack specific
+configuration directives only.
+
+*** CookieDomain directive
+    Syntax:	    CookieDomain domain
+    Default:    NULL
+
+    This directive controls the setting of the domain to which the tracking cookie
+    applies. If not present, no domain is included in the cookie header field.
+
+    The domain string must begin with a dot, and must include at least one embedded dot.
+    That is, .example.com is legal, but foo.example.com and .com are not.
+
+    Most browsers in use today will not allow cookies to be set for a two-part top level
+    domain, such as .co.uk, although such a domain ostensibly fulfills the requirements
+    above. These domains are equivalent to top level domains such as .com, and allowing
+    such cookies may be a security risk. Thus, if you are under a two-part top level
+    domain, you should still use your actual domain, as you would with any other top level
+    domain (for example, use .foo.co.uk).
+
+*** CookieExpires directive
+    Syntax:     CookieExpires expiry-period
+    Default:    NULL
+
+    When used, this directive sets an expiry time on the cookie generated by the usertrack
+    module. The expiry-period can be given either as a number of seconds, or in the format
+    such as "2 weeks 3 days 7 hours". Valid denominations are: years, months, weeks, days,
+    hours, minutes and seconds. If the expiry time is in any format other than one number
+    indicating the number of seconds, it must be enclosed by double quotes.
+
+    If this directive is not used, cookies last only for the current browser session.
+
+*** CookieName directive
+    Syntax:	    CookieName token
+    Default:	CookieName Apache
+
+    This directive allows you to change the name of the cookie this module uses for its
+    tracking purposes. By default the cookie is named "Apache".
+
+    You must specify a valid cookie name; results are unpredictable if you use a name
+    containing unusual characters. Valid characters include A-Z, a-z, 0-9, "_", and "-".
+
+*** CookieStyle directive
+    Syntax:	    CookieStyle Netscape|Cookie|Cookie2|RFC2109|RFC2965
+    Default:	CookieStyle Netscape
+
+    This directive controls the format of the cookie header field. The three formats
+    allowed are:
+
+    * Netscape, which is the original but now deprecated syntax. This is the default,
+      and the syntax Apache has historically used.
+    * Cookie or RFC2109, which is the syntax that superseded the Netscape syntax.
+    * Cookie2 or RFC2965, which is the most current cookie syntax.
+
+    Not all clients can understand all of these formats, but you should use the newest one
+    that is generally acceptable to your users browsers. At the time of writing, most
+    browsers only fully support CookieStyle Netscape.
+
+*** CookieTracking directive
+    Syntax:	    CookieTracking on|off
+    Default:	CookieTracking off
+
+    When mod_cookietrack is loaded, and CookieTracking on is set, Apache will send a
+    user-tracking cookie for all new requests. This directive can be used to turn this
+    behavior on or off on a per-server or per-directory basis. By default, enabling
+    mod_cookietrack will not activate cookies.
+
+
+Below are the extended configuration options available in mod_cookietrack, that are
+not supported by mod_usertrack:
+
+*** CookieDNTComply directive
+    Syntax:     CookieDNTComply on|off
+    Default:    CookieDNTComply on
+
+    This directive controls whether mod_cookietrack will set a fixed string DNT
+    cookie if the "Do Not Track" header is present. If you wish to ignore the
+    "Do Not Track" header, or be completely backwards compatible with mod_usertrack,
+    set this directive to off.
+
+    Note it's considered good industry practice to comply with Do Not Track and we
+    urge you to leave this directive enabled. It's exposure is purely for backwards
+    compatibility.
+
+*** CookieDNTValue directive
+    Syntax:     CookieDNTValue String
+    Default:    CookieDNTValue DNT
+
+    This directive controls the value of the "Do Not Track" cookie. The industry
+    standard is to use "DNT", but it can be any fixed string.
+
+*** CookieIPHeader directive
+    Syntax:     CookieIPHeader Header-Name
+    Default:    NULL
+
+    This directive let's you specify which other header field to inspect for the
+    remote ip, rather than just using the RemoteIP Apache exposes (%a in logs);
+    if your Apache is behind an HTTP cache or loadbalancer, the RemoteIP reported
+    will be that off the cache/loadbalancer, not that of the end user.
+
+    In that case, you'll want to use the CookieIPHeader directive. The industry
+    standard is to use 'X-Forwarded-For', but your cache/loadbalancer may set a
+    different header. mod_cookietrack understands that this can be a comma seperated
+    list and uses the right most IP in this header to mean the client ip. Example:
+
+        CookieIPHeader 'X-Forwarded-For'
+
+*** CookieSendHeader directive
+    Syntax:     CookieSendHeader on|off
+    Default:    CookieSendHeader off
+
+    This directive controls whether mod_cookietrack should set an additional
+    incoming & outgoing header with the generated UUID. This can be used for
+    more efficient hashing for caches/routing, as well as simplified logging
+    outside of Apache, where you don't have access to it's 'notes' feature.
+
+*** CookieHeaderName directive
+    Syntax:     CookieHeaderName Header-Name
+    Default:    CookieHeaderName X-UUID
+
+    This directive controls the value of the header mod_cookietrack sets. It
+    can be any valid HTTP header name of your choosing and will be set on the
+    incoming and outgoing request.
+
+*** CookieNoteName directive
+    Syntax:     CookieNoteName Name
+    Default:    CookieNoteName cookie
+
+    This directive controls the Apache 'note' name you want to use for The
+    generated UUID. For backwards compatibility, the default is 'cookie',
+    which is the value mod_usertrack used. You can set this to any valid
+    string.
