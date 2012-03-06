@@ -276,6 +276,13 @@ static int spot_cookie(request_rec *r)
 
     _DEBUG && fprintf( stderr, "Current Cookie: %s\n", cur_cookie_value );
 
+    /* XFF support inspired by this patch:
+       http://www.mail-archive.com/dev@httpd.apache.org/msg17378.html
+
+       And this implementation for scanning for remote ip:
+       http://apache.wirebrain.de/lxr/source/modules/metadata/mod_remoteip.c?v=2.3-trunk#267
+    */
+
     // Get the IP address of the originating request
     const char *rname = NULL;   // Originating IP address
     char *xff         = NULL;   // X-Forwarded-For, or equivalent header type
