@@ -6,17 +6,28 @@ use strict;
 use warnings;
 use Test::More      'no_plan';
 use HTTP::Date      qw[str2time];
+use Getopt::Long;
 use Data::Dumper;
 use HTTP::Cookies;
 use LWP::UserAgent;
 
+
 my $Base        = "http://localhost:7000/";
-my $Debug       = shift() ? 1 : 0;
-my $CookieLen   = shift() || 16;    # default length is 16
+my $Debug       = 0;
+my $CookieLen   = '24,36'; # default length is 24 to 36 chars: $ip.$microtime
+my $XFFSupport  = 1;
+
+GetOptions(
+    'base=s'            => \$Base,
+    'debug=s'           => \$Debug,
+    'cookielength=s'    => \$CookieLen,
+    'xff=i'             => \$XFFSupport,
+);
 
 ### make sure we have a cookie the lenght of the default cookie
 ### something like 12345678901234456 for length 16
-my $CValue      = join '', map { $_ % 10 } 1..$CookieLen;
+my $CValue      = join '', map { $_ % 10 }
+                        1.. do { $CookieLen =~ /(\d+),/ ? $1 : $CookieLen };
 my $CookieRe    = qr/^.{$CookieLen}$/;
 my $CDomain     = '.example.com';
 my $CAttr       = "; path=/; expires=Sat, 11-Jan-12 00:45:43 GMT; domain=$CDomain";
@@ -200,7 +211,7 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-#
+
     ### Here we change the value of the keys, like cookies, headers
     custom_name => {
         use_cookie          => $KCookie,
@@ -217,7 +228,7 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-#
+
     ### XXX storable's dclone() can't do regexes, so we have
     ### to copy the data for a minor different test :(
     ### Here we change the value of the returned header
@@ -268,7 +279,7 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-#
+
     ### test alternate cookie styles - testing code mostly copied
     ### from basic_expires, but adding domain tests.
     basic_expires_cookie => {
@@ -286,10 +297,9 @@ my %Map     = (
             domain          => [ [ $CDomain, $CDomain ],
                                  [ $CDomain, $CDomain ],
                                ],
-#
         },
     },
-#
+
     basic_expires_cookie2 => {
         set_cookie          => 'Set-Cookie2',
         use_cookie          => $DCookie,
@@ -310,7 +320,7 @@ my %Map     = (
                                ],
         },
     },
-#
+
     ### test non 2xx response codes -- all same as /basic, but
     ### with different response codes. Endpoint must be declared
     ### in httpd.conf though for test to work.
@@ -376,6 +386,36 @@ my %Map     = (
     },
 );
 
+if( $XFFSupport ) {
+
+    ### Test X-Forwarded-For support for remote IP
+    $Map{xff} = {
+        send_headers        => [ 'X-Forwarded-For' => '1.1.1.1' ],
+        use_cookie          => $DCookie,
+        headers => {
+            $DHeader        => $AllUnset,
+        },
+        cookies => {        # COOKIE NO     YES
+            $DName          => [ [ qr/^1.1.1.1/, $CValue ], # DNT OFF
+                                 [ "DNT",        "DNT"   ], # DNT ON
+                               ],
+        }
+    };
+
+    ### Test X-Forwarded-For support for multiple remote IPs
+    $Map{xff_multiple} = {
+        send_headers        => [ 'X-Forwarded-For' => '1.1.1.1, 2.2.2.2' ],
+        use_cookie          => $DCookie,
+        headers => {
+            $DHeader        => $AllUnset,
+        },
+        cookies => {        # COOKIE NO     YES
+            $DName          => [ [ qr/^2.2.2.2/, $CValue ], # DNT OFF
+                                 [ "DNT",        "DNT"   ], # DNT ON
+                               ],
+        }
+    };
+}
 
 for my $endpoint ( sort keys %Map ) {
     for my $dnt_set ( 0, 1 ) {
@@ -390,6 +430,7 @@ sub _do_test {
     my $dnt_set     = shift;
     my $send_cookie = shift;
     my $url             = "$Base/$endpoint";
+    my $send_headers    = $Map{ $endpoint }->{ send_headers }   || [];
     my $header_tests    = $Map{ $endpoint }->{ headers }        || {};
     my $cookie_tests    = $Map{ $endpoint }->{ cookies }        || {};
     my $set_cookie      = $Map{ $endpoint }->{ set_cookie }     || 'Set-Cookie';
@@ -407,7 +448,7 @@ sub _do_test {
         if $Debug;
 
     ### build the request
-    my @req = ($url);
+    my @req = ($url, @$send_headers);
     push @req, (Cookie  => $cookie  ) if $send_cookie;
     push @req, (DNT     => 1        ) if $dnt_set;
 
