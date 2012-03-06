@@ -14,6 +14,15 @@ From the checkout directory run:
 This will build, install & enable the module on your system
 
 ############################
+### Configuration
+############################
+
+See the file 'DOCUMENTATION' in the same directory as this
+README for all the extra features this module has compared to
+mod_usertrack, as well as documentation on the configuration
+directives supported.
+
+############################
 ### Custon UID generation
 ############################
 
