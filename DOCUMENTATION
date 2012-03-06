@@ -188,6 +188,15 @@ not supported by mod_usertrack:
     This directive controls the value of the "Do Not Track" cookie. The industry
     standard is to use "DNT", but it can be any fixed string.
 
+*** CookieNoteName directive
+    Syntax:     CookieNoteName Name
+    Default:    CookieNoteName cookie
+
+    This directive controls the Apache 'note' name you want to use for The
+    generated UUID. For backwards compatibility, the default is 'cookie',
+    which is the value mod_usertrack used. You can set this to any valid
+    string. You can access this in your CustomLog format using: %{cookie}n.
+
 *** CookieIPHeader directive
     Syntax:     CookieIPHeader Header-Name
     Default:    NULL
@@ -221,11 +230,3 @@ not supported by mod_usertrack:
     can be any valid HTTP header name of your choosing and will be set on the
     incoming and outgoing request.
 
-*** CookieNoteName directive
-    Syntax:     CookieNoteName Name
-    Default:    CookieNoteName cookie
-
-    This directive controls the Apache 'note' name you want to use for The
-    generated UUID. For backwards compatibility, the default is 'cookie',
-    which is the value mod_usertrack used. You can set this to any valid
-    string.
