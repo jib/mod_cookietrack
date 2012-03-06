@@ -101,7 +101,7 @@ as well as mod_cookietrack. The second section will have mod_cookietrack specifi
 configuration directives only.
 
 *** CookieDomain directive
-    Syntax:	    CookieDomain domain
+    Syntax:     CookieDomain domain
     Default:    NULL
 
     This directive controls the setting of the domain to which the tracking cookie
@@ -130,7 +130,7 @@ configuration directives only.
     If this directive is not used, cookies last only for the current browser session.
 
 *** CookieName directive
-    Syntax:	    CookieName token
+    Syntax:     CookieName token
     Default:    CookieName Apache
 
     This directive allows you to change the name of the cookie this module uses for its
@@ -140,7 +140,7 @@ configuration directives only.
     containing unusual characters. Valid characters include A-Z, a-z, 0-9, "_", and "-".
 
 *** CookieStyle directive
-    Syntax:	    CookieStyle Netscape|Cookie|Cookie2|RFC2109|RFC2965
+    Syntax:     CookieStyle Netscape|Cookie|Cookie2|RFC2109|RFC2965
     Default:    CookieStyle Netscape
 
     This directive controls the format of the cookie header field. The three formats
@@ -156,7 +156,7 @@ configuration directives only.
     browsers only fully support CookieStyle Netscape.
 
 *** CookieTracking directive
-    Syntax:	    CookieTracking on|off
+    Syntax:     CookieTracking on|off
     Default:    CookieTracking off
 
     When mod_cookietrack is loaded, and CookieTracking on is set, Apache will send a
