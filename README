@@ -23,7 +23,7 @@ mod_usertrack, as well as documentation on the configuration
 directives supported.
 
 ############################
-### Custon UID generation
+### Custom UID generation
 ############################
 
 Create a C file or library that has a 'gen_uid' function with
