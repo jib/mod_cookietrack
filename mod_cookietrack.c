@@ -39,8 +39,8 @@ module AP_MODULE_DECLARE_DATA cookietrack_module;
 
 
 #define COOKIE_NAME "Apache"    // default name if you did not provide one
-#define MAX_COOKIE_LENGTH 40    // maximum size of the cookie value
-#define NOTE_NAME   "UUID"      // default note name if you did not provide one
+#define NOTE_NAME   "cookie"    // default note name if you did not provide one
+                                // Backwards compatible with mod_usertrack
 #define HEADER_NAME "X-UUID"    // default header name if you did not provide one
 #define DNT_VALUE   "DNT"       // Cookie value to set when DNT is present
 #define DNT_EXPIRES "Fri, 01-Jan-38 00:00:00 GMT"
@@ -50,6 +50,13 @@ module AP_MODULE_DECLARE_DATA cookietrack_module;
                                 // http://www.onlineconversion.com/unix_time.htm
                                 // using 2038 as it's pre-32 bit overflow.
 #define NUM_SUBS 3              // Amount of regex sub expressions
+
+
+#ifdef MAX_COOKIE_LENGTH        // maximum size of the cookie value
+#define _MAX_COOKIE_LENGTH MAX_COOKIE_LENGTH
+#else
+#define _MAX_COOKIE_LENGTH 40   // At least IP address + dots + microsecond timestamp
+#endif                          // So 16 + 4 + 16 = 36
 
 #ifdef DEBUG                    // To print diagnostics to the error log
 #define _DEBUG 1                // enable through gcc -DDEBUG
@@ -85,6 +92,7 @@ typedef struct {
     cookie_type_e style;    // type of cookie, see above
     char *cookie_name;      // name of cookie
     char *cookie_domain;    // domain
+    char *cookie_ip_header; // header to take the client ip from
     char *note_name;        // note to set for log files
     char *header_name;      // name of the incoming/outgoing header
     char *regexp_string;    // used to compile regexp; save for debugging
@@ -268,9 +276,43 @@ static int spot_cookie(request_rec *r)
 
     _DEBUG && fprintf( stderr, "Current Cookie: %s\n", cur_cookie_value );
 
+    // Get the IP address of the originating request
+    const char *rname = NULL;   // Originating IP address
+    char *xff         = NULL;   // X-Forwarded-For, or equivalent header type
+
+    // Should we look at a header?
+    if( xff = apr_table_get(r->headers_in, dcfg->cookie_ip_header) ) {
+
+        // There might be multiple addresses in the header
+        // Check if there's a comma in there somewhere
+
+        // no comma, this is the address we can use
+        if( (rname = strrchr(xff, ',')) == NULL ) {
+            rname = xff;
+
+        // whitespace/commas left, remove 'm
+        } else {
+
+            // move past the comma
+            rname++;
+
+            // and any whitespace we might find
+            while( *rname == ' ' ) {
+                rname++;
+            }
+        }
+
+    // otherwise, get it from the remote host
+    } else {
+        rname = ap_get_remote_host( r->connection, r->per_dir_config,
+                                    REMOTE_NAME, NULL );
+    }
+
+    _DEBUG && fprintf( stderr, "Remote Address: %s\n", rname );
+
     /* Determine the value of the cookie we're going to set: */
     /* Make sure we have enough room here... */
-    char new_cookie_value[ MAX_COOKIE_LENGTH ];
+    char new_cookie_value[ _MAX_COOKIE_LENGTH ];
 
     // dnt is set, and we care about that
     if( dnt_is_set && dcfg->comply_with_dnt ) {
@@ -295,13 +337,14 @@ static int spot_cookie(request_rec *r)
                 // if we have some sort of library that's generating the
                 // UID, call that with the cookie we would be setting
                 if( _EXTERNAL_UID_FUNCTION ) {
-                    char ts[ MAX_COOKIE_LENGTH ];
+                    char ts[ _MAX_COOKIE_LENGTH ];
                     sprintf( ts, "%" APR_TIME_T_FMT, apr_time_now() );
-                    gen_uid( new_cookie_value, ts );
+                    gen_uid( new_cookie_value, ts, rname );
 
                 // otherwise, just set it
                 } else {
-                    sprintf( new_cookie_value, "%" APR_TIME_T_FMT, apr_time_now() );
+                    sprintf( new_cookie_value,
+                             "%s.%" APR_TIME_T_FMT, rname, apr_time_now() );
                 }
 
             // it's set to something reasonable - note we're still setting
@@ -313,7 +356,7 @@ static int spot_cookie(request_rec *r)
                 // the buffer if we get sent garbage
                 // The return value is a
                 sprintf( new_cookie_value, "%s",
-                    apr_pstrndup( r->pool, cur_cookie_value, MAX_COOKIE_LENGTH ) );
+                    apr_pstrndup( r->pool, cur_cookie_value, _MAX_COOKIE_LENGTH ) );
 
             }
 
@@ -323,13 +366,14 @@ static int spot_cookie(request_rec *r)
             // if we have some sort of library that's generating the
             // UID, call that with the cookie we would be setting
             if( _EXTERNAL_UID_FUNCTION ) {
-                char ts[ MAX_COOKIE_LENGTH ];
+                char ts[ _MAX_COOKIE_LENGTH ];
                 sprintf( ts, "%" APR_TIME_T_FMT, apr_time_now() );
-                gen_uid( new_cookie_value, ts );
+                gen_uid( new_cookie_value, ts, rname );
 
             // otherwise, just set it
             } else {
-                sprintf( new_cookie_value, "%" APR_TIME_T_FMT, apr_time_now() );
+                sprintf( new_cookie_value,
+                         "%s.%" APR_TIME_T_FMT, rname, apr_time_now() );
             }
         }
     }
@@ -485,6 +529,7 @@ static void *make_cookietrack_settings(apr_pool_t *p, char *d)
     dcfg = (cookietrack_settings_rec *) apr_pcalloc(p, sizeof(cookietrack_settings_rec));
     dcfg->cookie_name       = COOKIE_NAME;
     dcfg->cookie_domain     = NULL;
+    dcfg->cookie_ip_header  = NULL;
     dcfg->style             = CT_UNSET;
     dcfg->enabled           = 0;
     dcfg->expires           = 0;
@@ -600,6 +645,10 @@ static const char *set_config_value(cmd_parms *cmd, void *mconfig,
             return apr_psprintf(cmd->pool, "Invalid %s: %s", name, value);
         }
 
+    /* Name of the note to use in the logs */
+    } else if( strcasecmp(name, "CookieIPHeader") == 0 ) {
+        dcfg->cookie_ip_header  = apr_pstrdup(cmd->pool, value);
+
     /* Domain to set the cookie in */
     } else if( strcasecmp(name, "CookieDomain") == 0 ) {
 
@@ -651,6 +700,8 @@ static const command_rec cookietrack_cmds[] = {
                   "'Netscape', 'Cookie' (RFC2109), or 'Cookie2' (RFC2965)"),
     AP_INIT_TAKE1("CookieName",         set_config_value,   NULL, OR_FILEINFO,
                   "name of the tracking cookie"),
+    AP_INIT_TAKE1("CookieIPHeader",     set_config_value,   NULL, OR_FILEINFO,
+                  "name of the header to use for the client IP"),
     AP_INIT_FLAG( "CookieTracking",     set_config_enable,  NULL, OR_FILEINFO,
                   "whether or not to enable cookies"),
     AP_INIT_FLAG( "CookieSendHeader",   set_config_enable,  NULL, OR_FILEINFO,
