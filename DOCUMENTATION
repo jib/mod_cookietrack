@@ -188,6 +188,18 @@ not supported by mod_usertrack:
     This directive controls the value of the "Do Not Track" cookie. The industry
     standard is to use "DNT", but it can be any fixed string.
 
+*** CookieDNTExempt directive
+    Syntax:     CookieDNTExempt String1 String2 ...
+    Default:    NULL
+
+    This directive lets you list some cookie values as exempt from being set
+    to 'CookeDNTValue'. This allows you to whitelist cookies like, for example,
+    'OPTOUT' to persist, even when the user sends the DNT header.
+
+    The rationale is that a more specific signal, like 'OPTOUT', shouldn't be
+    lost if the user enables and subsequently disables disables the DNT header.
+
+
 *** CookieNoteName directive
     Syntax:     CookieNoteName Name
     Default:    CookieNoteName cookie
