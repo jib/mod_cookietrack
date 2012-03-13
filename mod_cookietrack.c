@@ -104,6 +104,8 @@ typedef struct {
     int comply_with_dnt;    // adhere to browsers dnt settings?
     int dnt_max_age;        // timestamp to use on the cookie when dnt is true
     char *dnt_expires;      // timestamp to use on the cookie when dnt is true
+    apr_array_header_t *dnt_exempt;
+                            // cookie values that are DNT exempt, e.g OPTOUT
 } cookietrack_settings_rec;
 
 
@@ -238,6 +240,7 @@ static int spot_cookie(request_rec *r)
 {
     cookietrack_settings_rec *dcfg = ap_get_module_config(r->per_dir_config,
                                                 &cookietrack_module);
+
     const char *cookie_header;
     ap_regmatch_t regm[NUM_SUBS];
 
@@ -329,8 +332,32 @@ static int spot_cookie(request_rec *r)
             return DECLINED;
         }
 
-        // dnt_value  is a pointer, hence the sprintf
-        sprintf( new_cookie_value, "%s", dcfg->dnt_value );
+        char *dnt_value = dcfg->dnt_value;
+
+        // you already ahve a cookie, but it might be whitelisted
+        if( cur_cookie_value ) {
+
+            // you might have whitelisted this value; let's check
+            // Following tutorial code here again:
+            // http://dev.ariel-networks.com/apr/apr-tutorial/html/apr-tutorial-19.html
+            int i;
+            for( i = 0; i < dcfg->dnt_exempt->nelts; i++ ) {
+                _DEBUG && fprintf( stderr, "e: %d\n", i );
+
+                char *exempt = ((char **)dcfg->dnt_exempt->elts)[i];
+
+                //it's indeed whiteliested, we should use this value instead
+                if( strcasecmp( cur_cookie_value, exempt ) == 0 ) {
+                    _DEBUG && fprintf( stderr,
+                        "Cookie %s is DNT exempt\n", cur_cookie_value );
+
+                    dnt_value = exempt;
+                }
+            }
+        }
+
+        // dnt_value is a pointer, hence the sprintf
+        sprintf( new_cookie_value, "%s", dnt_value );
 
     // No DNT header, so we need a cookie value to set
     } else {
@@ -548,6 +575,7 @@ static void *make_cookietrack_settings(apr_pool_t *p, char *d)
     dcfg->comply_with_dnt   = 1;
     dcfg->dnt_expires       = DNT_EXPIRES;
     dcfg->dnt_max_age       = DNT_MAX_AGE;
+    dcfg->dnt_exempt        = apr_array_make(p, 2, sizeof(const char*) );
 
     /* In case the user does not use the CookieName directive,
      * we need to compile the regexp for the default cookie name. */
@@ -684,6 +712,18 @@ static const char *set_config_value(cmd_parms *cmd, void *mconfig,
             return apr_psprintf(cmd->pool, "Invalid cookie name: %s", value);
         }
 
+    } else if( strcasecmp(name, "CookieDNTExempt") == 0 ) {
+
+        // following tutorial here:
+        // http://dev.ariel-networks.com/apr/apr-tutorial/html/apr-tutorial-19.html
+        const char *str                                 = apr_pstrdup(cmd->pool, value);
+        *(const char**)apr_array_push(dcfg->dnt_exempt) = str;
+
+        _DEBUG && fprintf( stderr, "dnt exempt = %s\n", str );
+
+        char *ary = apr_array_pstrcat( cmd->pool, dcfg->dnt_exempt, '-' );
+        _DEBUG && fprintf( stderr, "dnt exempt as str = %s\n", ary );
+
     } else {
         return apr_psprintf(cmd->pool, "No such variable %s", name);
     }
@@ -723,6 +763,8 @@ static const command_rec cookietrack_cmds[] = {
                   "whether or not to set a DNT cookie if the DNT header is present"),
     AP_INIT_FLAG( "CookieDNTComply",    set_config_enable,  NULL, OR_FILEINFO,
                   "whether or not to comply with browser Do Not Track settings"),
+    AP_INIT_ITERATE( "CookieDNTExempt", set_config_value,   NULL, OR_FILEINFO,
+                  "list of cookie values that will not be changed to DNT" ),
     {NULL}
 };
 

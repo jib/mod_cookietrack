@@ -19,7 +19,7 @@ my $XFFSupport  = 1;
 
 GetOptions(
     'base=s'            => \$Base,
-    'debug=s'           => \$Debug,
+    'debug'             => \$Debug,
     'cookielength=s'    => \$CookieLen,
     'xff=i'             => \$XFFSupport,
 );
@@ -384,6 +384,31 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
+
+    dnt_exempt  => {
+        use_cookie          => $DName .'=OPTOUT'. $CAttr,
+        cookies => {        # COOKIE NO     YES
+            $DName          => [ [ $CookieRe, qr/OPTOUT/ ], # DNT OFF
+                                 [ "DNT",     "OPTOUT"   ], # DNT ON
+                               ],
+            $KName          => $AllUnset,
+            expires         => $AllUnset,
+            domain          => $AllUnset,
+        },
+    },
+
+    'dnt_exempt?notme'  => {
+        use_cookie          => $DName .'=NOTME'. $CAttr,
+        cookies => {        # COOKIE NO     YES
+            $DName          => [ [ $CookieRe, qr/NOTME/ ], # DNT OFF
+                                 [ "DNT",     "NOTME"   ], # DNT ON
+                               ],
+            $KName          => $AllUnset,
+            expires         => $AllUnset,
+            domain          => $AllUnset,
+        },
+    },
+
 );
 
 if( $XFFSupport ) {
@@ -403,7 +428,7 @@ if( $XFFSupport ) {
     };
 
     ### Test X-Forwarded-For support for multiple remote IPs
-    $Map{xff_multiple} = {
+    $Map{'xff?multiple'} = {
         send_headers        => [ 'X-Forwarded-For' => '1.1.1.1, 2.2.2.2' ],
         use_cookie          => $DCookie,
         headers => {
