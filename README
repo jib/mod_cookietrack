@@ -78,3 +78,4 @@ especially useful if you built the library with --debug:
 
   $ tail -F test/error.log
 
+
