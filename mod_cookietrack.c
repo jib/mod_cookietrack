@@ -103,7 +103,6 @@ typedef struct {
     ap_regex_t *regexp;     // used to find cookietrack cookie in cookie header
     int expires;            // holds the expires value for the cookie
     int send_header;        // whether or not to send headers
-    int cookie_generated;   // whether a cookie was generated this request
     char *dnt_value;        // value to use for the cookie if dnt header is present
     int set_dnt_cookie;     // whether to set a dnt cookie if dnt header is present
     int comply_with_dnt;    // adhere to browsers dnt settings?
@@ -217,14 +216,19 @@ void make_cookie(request_rec *r, char uid[], char cur_uid[], int use_dnt_expires
     // have an incoming cookie value, or it will send 2 cookies with
     // the same name, with both the old and new value :(
     if( !cur_uid ) {
-        dcfg->cookie_generated = 1;
 
         // set the cookie name
         apr_table_addn( r->headers_in, "Cookie",  new_cookie );
 
-        // set a note indicating we generated a cookie
-        apr_table_setn( r->notes, dcfg->generated_note_name, "1" );
+        _DEBUG && fprintf( stderr, "Adding cookie '%s' to incoming header\n", new_cookie );
     }
+
+    // Created a new cookie or not?
+    _DEBUG && fprintf( stderr, "Generated cookie: %d\n", !cur_uid );
+
+    // set a note indicating we generated a cookie
+    // apr_table_setn wants a char, not an int, so we do the conversion like this
+    apr_table_setn( r->notes, dcfg->generated_note_name, cur_uid ? "0" : "1" );
 
     // Set headers? We set both incoming AND outgoing:
     if( dcfg->send_header ) {
@@ -572,22 +576,22 @@ static void *make_cookietrack_settings(apr_pool_t *p, char *d)
     cookietrack_settings_rec *dcfg;
 
     dcfg = (cookietrack_settings_rec *) apr_pcalloc(p, sizeof(cookietrack_settings_rec));
-    dcfg->cookie_name       = COOKIE_NAME;
-    dcfg->cookie_domain     = NULL;
-    dcfg->cookie_ip_header  = NULL;
-    dcfg->style             = CT_UNSET;
-    dcfg->enabled           = 0;
-    dcfg->expires           = 0;
-    dcfg->note_name         = NOTE_NAME;
-    dcfg->header_name       = HEADER_NAME;
-    dcfg->send_header       = 0;
-    dcfg->dnt_value         = DNT_VALUE;
-    dcfg->set_dnt_cookie    = 1;
-    dcfg->comply_with_dnt   = 1;
-    dcfg->cookie_generated  = 0;
-    dcfg->dnt_expires       = DNT_EXPIRES;
-    dcfg->dnt_max_age       = DNT_MAX_AGE;
-    dcfg->dnt_exempt        = apr_array_make(p, 2, sizeof(const char*) );
+    dcfg->cookie_name           = COOKIE_NAME;
+    dcfg->cookie_domain         = NULL;
+    dcfg->cookie_ip_header      = NULL;
+    dcfg->style                 = CT_UNSET;
+    dcfg->enabled               = 0;
+    dcfg->expires               = 0;
+    dcfg->note_name             = NOTE_NAME;
+    dcfg->generated_note_name   = GENERATED_NOTE_NAME;
+    dcfg->header_name           = HEADER_NAME;
+    dcfg->send_header           = 0;
+    dcfg->dnt_value             = DNT_VALUE;
+    dcfg->set_dnt_cookie        = 1;
+    dcfg->comply_with_dnt       = 1;
+    dcfg->dnt_expires           = DNT_EXPIRES;
+    dcfg->dnt_max_age           = DNT_MAX_AGE;
+    dcfg->dnt_exempt            = apr_array_make(p, 2, sizeof(const char*) );
 
     /* In case the user does not use the CookieName directive,
      * we need to compile the regexp for the default cookie name. */
