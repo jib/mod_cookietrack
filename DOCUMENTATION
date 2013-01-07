@@ -199,15 +199,26 @@ not supported by mod_usertrack:
     The rationale is that a more specific signal, like 'OPTOUT', shouldn't be
     lost if the user enables and subsequently disables disables the DNT header.
 
-
 *** CookieNoteName directive
     Syntax:     CookieNoteName Name
     Default:    CookieNoteName cookie
 
-    This directive controls the Apache 'note' name you want to use for The
+    This directive controls the Apache 'note' name you want to use for the
     generated UUID. For backwards compatibility, the default is 'cookie',
     which is the value mod_usertrack used. You can set this to any valid
     string. You can access this in your CustomLog format using: %{cookie}n.
+
+*** CookieGeneratedNoteName directive
+    Syntax:     CookieGeneratedNoteName Name
+    Default:    CookieGeneratedNoteName cookie_generated
+
+    This directive controls the Apache 'note' name you want to use for the
+    flag indicating that mod_cookietrack generated a cookie (meaning the
+    user came in without a Cookie header matching the 'CookieName' directive).
+
+    It will be set to '0' if no Cookie was sent, or '1' if mod_cookietrack
+    assigned a cookie. You can access this in your CustomLog format using:
+    %{cookie_generated}n.
 
 *** CookieIPHeader directive
     Syntax:     CookieIPHeader Header-Name
