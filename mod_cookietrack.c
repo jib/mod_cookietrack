@@ -51,6 +51,8 @@ module AP_MODULE_DECLARE_DATA cookietrack_module;
                                 // using 2038 as it's pre-32 bit overflow.
 #define NUM_SUBS 3              // Amount of regex sub expressions
 
+#define GENERATED_NOTE_NAME "cookie_generated"
+                                // Was the cookie generated on this visit?
 
 #ifdef MAX_COOKIE_LENGTH        // maximum size of the cookie value
 #define _MAX_COOKIE_LENGTH MAX_COOKIE_LENGTH
@@ -94,11 +96,14 @@ typedef struct {
     char *cookie_domain;    // domain
     char *cookie_ip_header; // header to take the client ip from
     char *note_name;        // note to set for log files
+    char *generated_note_name;
+                            // note to indicate a cookie was generated this request
     char *header_name;      // name of the incoming/outgoing header
     char *regexp_string;    // used to compile regexp; save for debugging
     ap_regex_t *regexp;     // used to find cookietrack cookie in cookie header
     int expires;            // holds the expires value for the cookie
     int send_header;        // whether or not to send headers
+    int cookie_generated;   // whether a cookie was generated this request
     char *dnt_value;        // value to use for the cookie if dnt header is present
     int set_dnt_cookie;     // whether to set a dnt cookie if dnt header is present
     int comply_with_dnt;    // adhere to browsers dnt settings?
@@ -212,7 +217,13 @@ void make_cookie(request_rec *r, char uid[], char cur_uid[], int use_dnt_expires
     // have an incoming cookie value, or it will send 2 cookies with
     // the same name, with both the old and new value :(
     if( !cur_uid ) {
+        dcfg->cookie_generated = 1;
+
+        // set the cookie name
         apr_table_addn( r->headers_in, "Cookie",  new_cookie );
+
+        // set a note indicating we generated a cookie
+        apr_table_setn( r->notes, dcfg->generated_note_name, "1" );
     }
 
     // Set headers? We set both incoming AND outgoing:
@@ -573,6 +584,7 @@ static void *make_cookietrack_settings(apr_pool_t *p, char *d)
     dcfg->dnt_value         = DNT_VALUE;
     dcfg->set_dnt_cookie    = 1;
     dcfg->comply_with_dnt   = 1;
+    dcfg->cookie_generated  = 0;
     dcfg->dnt_expires       = DNT_EXPIRES;
     dcfg->dnt_max_age       = DNT_MAX_AGE;
     dcfg->dnt_exempt        = apr_array_make(p, 2, sizeof(const char*) );
@@ -658,6 +670,11 @@ static const char *set_config_value(cmd_parms *cmd, void *mconfig,
     } else if( strcasecmp(name, "CookieNoteName") == 0 ) {
         dcfg->note_name     = apr_pstrdup(cmd->pool, value);
 
+    /* Name of the note to use in the logs to indicate a cookie was generated */
+    } else if( strcasecmp(name, "CookieGeneratedNoteName") == 0 ) {
+        dcfg->generated_note_name
+                            = apr_pstrdup(cmd->pool, value);
+
     /* Value to use if setting a DNT cookie */
     } else if( strcasecmp(name, "CookieDNTValue") == 0 ) {
         dcfg->dnt_value     = apr_pstrdup(cmd->pool, value);
@@ -739,25 +756,27 @@ static const char *set_config_value(cmd_parms *cmd, void *mconfig,
 
 
 static const command_rec cookietrack_cmds[] = {
-    AP_INIT_TAKE1("CookieExpires",      set_cookie_exp,     NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieExpires",          set_cookie_exp,     NULL, OR_FILEINFO,
                   "an expiry date code"),
-    AP_INIT_TAKE1("CookieDomain",       set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieDomain",           set_config_value,   NULL, OR_FILEINFO,
                   "domain to which this cookie applies"),
-    AP_INIT_TAKE1("CookieStyle",        set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieStyle",            set_config_value,   NULL, OR_FILEINFO,
                   "'Netscape', 'Cookie' (RFC2109), or 'Cookie2' (RFC2965)"),
-    AP_INIT_TAKE1("CookieName",         set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieName",             set_config_value,   NULL, OR_FILEINFO,
                   "name of the tracking cookie"),
-    AP_INIT_TAKE1("CookieIPHeader",     set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieIPHeader",         set_config_value,   NULL, OR_FILEINFO,
                   "name of the header to use for the client IP"),
-    AP_INIT_FLAG( "CookieTracking",     set_config_enable,  NULL, OR_FILEINFO,
+    AP_INIT_FLAG( "CookieTracking",         set_config_enable,  NULL, OR_FILEINFO,
                   "whether or not to enable cookies"),
-    AP_INIT_FLAG( "CookieSendHeader",   set_config_enable,  NULL, OR_FILEINFO,
+    AP_INIT_FLAG( "CookieSendHeader",       set_config_enable,  NULL, OR_FILEINFO,
                   "whether or not to enable cookies"),
-    AP_INIT_TAKE1("CookieHeaderName",   set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieHeaderName",       set_config_value,   NULL, OR_FILEINFO,
                   "name of the incoming/outgoing header to set to the cookie value"),
-    AP_INIT_TAKE1("CookieNoteName",     set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieNoteName",         set_config_value,   NULL, OR_FILEINFO,
                   "name of the note to set to for the Apache logs"),
-    AP_INIT_TAKE1("CookieDNTValue",     set_config_value,   NULL, OR_FILEINFO,
+    AP_INIT_TAKE1("CookieGeneratedNoteName",set_config_value,   NULL, OR_FILEINFO,
+                  "name of the note indicating a cookie was generated this request" ),
+    AP_INIT_TAKE1("CookieDNTValue",         set_config_value,   NULL, OR_FILEINFO,
                   "value to use when setting a DNT cookie"),
     AP_INIT_FLAG( "CookieSetDNTCookie", set_config_enable,  NULL, OR_FILEINFO,
                   "whether or not to set a DNT cookie if the DNT header is present"),
