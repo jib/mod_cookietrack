@@ -57,6 +57,10 @@ my $DHeader = "X-UUID";
 my $LValue  = '123.123.123.123.1234567890123456';   # $ip.$timestamp
 my $LCookie = $DName .'='. $LValue . $CAttr;
 
+### Browser UA constants
+my $IE9     = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)';
+my $IE10    = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; WOW64; Trident/6.0)';
+
 
 ### Making sure the expiry is in the future
 my $_ExpSub   = sub {
@@ -211,7 +215,6 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
     ### Here we change the value of the keys, like cookies, headers
     custom_name => {
         use_cookie          => $KCookie,
@@ -228,7 +231,6 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
     ### XXX storable's dclone() can't do regexes, so we have
     ### to copy the data for a minor different test :(
     ### Here we change the value of the returned header
@@ -279,7 +281,6 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
     ### test alternate cookie styles - testing code mostly copied
     ### from basic_expires, but adding domain tests.
     basic_expires_cookie => {
@@ -299,7 +300,6 @@ my %Map     = (
                                ],
         },
     },
-
     basic_expires_cookie2 => {
         set_cookie          => 'Set-Cookie2',
         use_cookie          => $DCookie,
@@ -320,7 +320,6 @@ my %Map     = (
                                ],
         },
     },
-
     ### test non 2xx response codes -- all same as /basic, but
     ### with different response codes. Endpoint must be declared
     ### in httpd.conf though for test to work.
@@ -384,7 +383,7 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
+    ### Test cookies that are DNT exempt
     dnt_exempt  => {
         use_cookie          => $DName .'=OPTOUT'. $CAttr,
         cookies => {        # COOKIE NO     YES
@@ -396,7 +395,7 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
+    ### Test cookies that are DNT exempt
     'dnt_exempt?notme'  => {
         use_cookie          => $DName .'=NOTME'. $CAttr,
         cookies => {        # COOKIE NO     YES
@@ -408,11 +407,30 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
-
+    ### Test browsers that are DNT exempt
+    ### We ignore DNT for msie 10
+    'dnt_exempt_browser/msie10' => {
+        send_headers => [ 'User-Agent' => $IE10 ],
+        cookies      => {       # COOKIE NO     YES
+             $DName          => [ [ $CookieRe, $CValue ], # DNT OFF
+                                  [ $CookieRe, $CValue ], # DNT ON
+                                ],
+        }
+    },
+    ### Test browsers that are DNT exempt
+    ### But it's not ignored for MSIE 9.0
+    'dnt_exempt_browser/msie9' => {
+        send_headers => [ 'User-Agent' => $IE9 ],
+        cookies      => {       # COOKIE NO     YES
+             $DName          => [ [ $CookieRe, $CValue ], # DNT OFF
+                                  [ "DNT",     "DNT"   ], # DNT ON
+                                ],
+        }
+    }
 );
 
-if( $XFFSupport ) {
 
+if( $XFFSupport ) {
     ### Test X-Forwarded-For support for remote IP
     $Map{xff} = {
         send_headers        => [ 'X-Forwarded-For' => '1.1.1.1' ],
