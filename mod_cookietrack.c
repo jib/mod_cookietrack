@@ -494,7 +494,8 @@ static int spot_cookie(request_rec *r)
 
     make_cookie(r,  new_cookie_value,
                     cur_cookie_value,
-                    (dnt_is_set && dcfg->comply_with_dnt)   // should we use dnt expires?
+                    // should we use dnt expires?
+                    (dnt_is_set && dcfg->comply_with_dnt && !request_is_dnt_exempt)
                 );
 
     // We need to flush the stream for messages to appear right away.

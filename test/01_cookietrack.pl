@@ -412,9 +412,12 @@ my %Map     = (
     'dnt_exempt_browser/msie10' => {
         send_headers => [ 'User-Agent' => $IE10 ],
         cookies      => {       # COOKIE NO     YES
-             $DName          => [ [ $CookieRe, $CValue ], # DNT OFF
-                                  [ $CookieRe, $CValue ], # DNT ON
-                                ],
+            $DName          => [ [ $CookieRe, $CValue ], # DNT OFF
+                                 [ $CookieRe, $CValue ], # DNT ON
+                               ],
+            expires         => [ [ $ExpSub, $ExpSub ],
+                                 [ $ExpSub, $ExpSub ],
+                               ],
         }
     },
     ### Test browsers that are DNT exempt
@@ -422,9 +425,10 @@ my %Map     = (
     'dnt_exempt_browser/msie9' => {
         send_headers => [ 'User-Agent' => $IE9 ],
         cookies      => {       # COOKIE NO     YES
-             $DName          => [ [ $CookieRe, $CValue ], # DNT OFF
+            $DName           => [ [ $CookieRe, $CValue ], # DNT OFF
                                   [ "DNT",     "DNT"   ], # DNT ON
                                 ],
+            expires          => $AllExpires,
         }
     }
 );
