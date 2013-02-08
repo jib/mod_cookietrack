@@ -199,6 +199,31 @@ not supported by mod_usertrack:
     The rationale is that a more specific signal, like 'OPTOUT', shouldn't be
     lost if the user enables and subsequently disables disables the DNT header.
 
+*** CookieDNTExemptBrowsers directive
+    Syntax:     CookieDNTExemptBrowsers Regex1 Regex2 ...
+    Default:    NULL
+
+    This directive lets you list browsers whose DNT header you wish to ignore.
+    For example, if you wish to ignore DNT headers from Internet Explorer 10,
+    you could set this to 'MSIE 10.0;'.
+
+    The rationale for this is that some browser vendors are enabling the DNT
+    header by default, and are not letting the user explicitly set it. This
+    means it's programmatically not possible to determine whether the user
+    did or did not chose to enable DNT.
+
+    This flag gives you the option to either err on the site of caution, or
+    to explicitly ignore a signal that may not have been set by the user.
+
+    The Internet Explorer 10 example is very topical, as that browser is now
+    enabling DNT by default. You can read about the pros and cons of that
+    decision here:
+
+      http://www.iab.net/public_policy/InternetExplorer
+      http://www.ypolicyblog.com/policyblog/2012/10/26/dnt/
+      https://github.com/apache/httpd/commit/a381ff35fa4d50a5f7b9f64300dfd98859dee8d0
+      https://blogs.technet.com/b/microsoft_on_the_issues/archive/2012/05/31/advancing-consumer-trust-and-privacy-internet-explorer-in-windows-8.aspx
+
 *** CookieNoteName directive
     Syntax:     CookieNoteName Name
     Default:    CookieNoteName cookie
