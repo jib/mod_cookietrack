@@ -193,11 +193,16 @@ not supported by mod_usertrack:
     Default:    NULL
 
     This directive lets you list some cookie values as exempt from being set
-    to 'CookeDNTValue'. This allows you to whitelist cookies like, for example,
+    to 'CookieDNTValue'. This allows you to whitelist cookies like, for example,
     'OPTOUT' to persist, even when the user sends the DNT header.
 
     The rationale is that a more specific signal, like 'OPTOUT', shouldn't be
     lost if the user enables and subsequently disables disables the DNT header.
+
+    Using that same rationale, any cookies listed in 'CookieDNTExempt' will also
+    not have their 'Expires' updated. In fact, no 'Set-Cookie' header will be
+    returned if the current cookie value is in the 'CookieDNTExempt' list, even
+    if the DNT header is not provided.
 
 *** CookieDNTExemptBrowsers directive
     Syntax:     CookieDNTExemptBrowsers Regex1 Regex2 ...
