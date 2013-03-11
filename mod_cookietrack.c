@@ -299,6 +299,27 @@ static int spot_cookie(request_rec *r)
 
     _DEBUG && fprintf( stderr, "Current Cookie: %s\n", cur_cookie_value );
 
+    /* A cookie may be listed as DNT Exempt, at which point we don't even /touch/ it.
+     * The expires value may be set by some other process altogether and if so, the
+     * policy for mod_cookietrack may just interfere. The specific use case here is
+     * an OPTOUT cookie which may have a life span of many years, while the standard
+     * tracking cookies have a much shorter lifespan.
+     */
+    if( (dcfg->dnt_exempt->nelts > 0) && (cur_cookie_value != NULL) ) {
+        int i;
+
+        // Following tutorial code here again:
+        // http://dev.ariel-networks.com/apr/apr-tutorial/html/apr-tutorial-19.html
+        for( i = 0; i < dcfg->dnt_exempt->nelts; i++ ) {
+            char *exempt = ((char **)dcfg->dnt_exempt->elts)[i];
+            if( strcasecmp( cur_cookie_value, exempt ) == 0 ) {
+                _DEBUG && fprintf( stderr,
+                    "Exempt cookie %s - not modifying\n", cur_cookie_value );
+                return DECLINED;
+            }
+        }
+    }
+
     /* Is DNT set? */
     const char *dnt_is_set = apr_table_get( r->headers_in, "DNT" );
     _DEBUG && fprintf( stderr, "DNT: %s\n", dnt_is_set );
@@ -396,8 +417,6 @@ static int spot_cookie(request_rec *r)
     /* Make sure we have enough room here... */
     char new_cookie_value[ _MAX_COOKIE_LENGTH ];
 
-
-
     // dnt is set, and we care about that and this request is NOT explicitly exempt
     if( dnt_is_set && dcfg->comply_with_dnt && !request_is_dnt_exempt ) {
 
@@ -406,33 +425,12 @@ static int spot_cookie(request_rec *r)
             return DECLINED;
         }
 
-        char *dnt_value = dcfg->dnt_value;
-
-        // you already ahve a cookie, but it might be whitelisted
-        if( cur_cookie_value ) {
-
-            // you might have whitelisted this value; let's check
-            // Following tutorial code here again:
-            // http://dev.ariel-networks.com/apr/apr-tutorial/html/apr-tutorial-19.html
-            int i;
-            for( i = 0; i < dcfg->dnt_exempt->nelts; i++ ) {
-                _DEBUG && fprintf( stderr, "e: %d\n", i );
-
-                char *exempt = ((char **)dcfg->dnt_exempt->elts)[i];
-
-                //it's indeed whiteliested, we should use this value instead
-                if( strcasecmp( cur_cookie_value, exempt ) == 0 ) {
-                    _DEBUG && fprintf( stderr,
-                        "Cookie %s is DNT exempt\n", cur_cookie_value );
-
-                    dnt_value = exempt;
-                    break;
-                }
-            }
-        }
-
+        // If we got here, your cookie is not in the dnt_exempt list (as we
+        // check that further up). So at this point, just go straight to
+        // setting it to the dnt value
         // dnt_value is a pointer, hence the sprintf
-        sprintf( new_cookie_value, "%s", dnt_value );
+
+        sprintf( new_cookie_value, "%s", dcfg->dnt_value );
 
     // No DNT header, so we need a cookie value to set
     } else {
