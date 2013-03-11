@@ -384,11 +384,13 @@ my %Map     = (
         },
     },
     ### Test cookies that are DNT exempt
+    ### DNT exempt cookies, when the cookie is SENT, do NOT get modified and
+    ### therefor not returned to the client. That's why the 'YES' column is undef
     dnt_exempt  => {
         use_cookie          => $DName .'=OPTOUT'. $CAttr,
         cookies => {        # COOKIE NO     YES
-            $DName          => [ [ $CookieRe, qr/OPTOUT/ ], # DNT OFF
-                                 [ "DNT",     "OPTOUT"   ], # DNT ON
+            $DName          => [ [ $CookieRe, undef ], # DNT OFF
+                                 [ "DNT",     undef ], # DNT ON
                                ],
             $KName          => $AllUnset,
             expires         => $AllUnset,
@@ -396,11 +398,13 @@ my %Map     = (
         },
     },
     ### Test cookies that are DNT exempt
+    ### DNT exempt cookies, when the cookie is SENT, do NOT get modified and
+    ### therefor not returned to the client. That's why the 'YES' column is undef
     'dnt_exempt?notme'  => {
         use_cookie          => $DName .'=NOTME'. $CAttr,
         cookies => {        # COOKIE NO     YES
-            $DName          => [ [ $CookieRe, qr/NOTME/ ], # DNT OFF
-                                 [ "DNT",     "NOTME"   ], # DNT ON
+            $DName          => [ [ $CookieRe, undef ], # DNT OFF
+                                 [ "DNT",     undef ], # DNT ON
                                ],
             $KName          => $AllUnset,
             expires         => $AllUnset,
