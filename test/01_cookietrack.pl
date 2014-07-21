@@ -469,7 +469,8 @@ if( $XFFSupport ) {
 }
 
 for my $endpoint ( sort keys %Map ) {
-    for my $dnt_set ( 0, 1 ) {
+    ### Don't send DNT, then set to 0, then set to 1
+    for my $dnt_set ( undef,  0, 1 ) {
         for my $send_cookie ( 0, 1 ) {
             _do_test( $endpoint, $dnt_set, $send_cookie );
         }
@@ -492,33 +493,41 @@ sub _do_test {
     ### result instead! (default is 7, so definitely turn off!)
     $ua->max_redirect(0);
 
+    ### As we're using undef, 0 and 1 for DNT, we have to have a pretty print
+    ### version of DNT, or we get lots of warnings:
+    my $pp_dnt_set = defined $dnt_set ? $dnt_set : '<undef>';
+
     ### what cookie to send; by default, use the vanilla one
     my $cookie          = $Map{ $endpoint }->{ use_cookie } || $DCookie;
 
-    diag "\n\n *** New Request ***\n\t DNT: $dnt_set\n\t Cookie: $send_cookie\n\n"
+    diag "\n\n *** New Request ***\n\t DNT: $pp_dnt_set\n\t Cookie: $send_cookie\n\n"
         if $Debug;
 
     ### build the request
     my @req = ($url, @$send_headers);
-    push @req, (Cookie  => $cookie  ) if $send_cookie;
-    push @req, (DNT     => 1        ) if $dnt_set;
+    push @req, (Cookie => $cookie  ) if $send_cookie;
+    ### doesn't send it if set to undef, but send explicitly for 0 and 1
+    if( defined $dnt_set ) {
+        push @req, (DNT => $dnt_set );
+    }
 
     ### Diagnostic header so we can correlate requests:
-    push @req, ( "X-Test-Flags" => "url=$endpoint, dnt=$dnt_set, cookie=$send_cookie" );
+    push @req, ( "X-Test-Flags" => "url=$endpoint, dnt=$pp_dnt_set, cookie=$send_cookie" );
 
     diag "Sending: @req" if $Debug;
 
     my $res     = $ua->get( @req );
     diag $res->as_string if $Debug;
 
-    ok( $res,                   "Got /$endpoint - dnt:$dnt_set cookie:$send_cookie" );
+    ok( $res,                   "Got /$endpoint - dnt:$pp_dnt_set cookie:$send_cookie" );
     is( $res->code, $rv,        "   HTTP Response = $rv" );
 
      ####################
      ### header tests
      ####################
      while( my( $key, $aref ) = each %$header_tests ) {
-         my $test = $aref->[ $dnt_set ]->[ $send_cookie ];
+         ### If we have dnt set to <undef>, we want it to test the same values as DNT=0
+         my $test = $aref->[ $dnt_set || 0 ]->[ $send_cookie ];
          my $val  = $res->header( $key );
          my $diag = "    Response header $key matches ". ( $test || '<undef>' );
 
@@ -534,7 +543,8 @@ sub _do_test {
      my %cookie = _simple_cookie_parse( $res->header( $set_cookie ) );
 
      while( my( $key, $aref ) = each %$cookie_tests ) {
-         my $test   = $aref->[ $dnt_set ]->[ $send_cookie ];
+         ### If we have dnt set to <undef>, we want it to test the same values as DNT=0
+         my $test   = $aref->[ $dnt_set || 0 ]->[ $send_cookie ];
          my $val    = $cookie{ $key };
          my $pp_val = $val || '<undef>';
          my $diag   = "    Response cookie key $key ($pp_val) matches ".
