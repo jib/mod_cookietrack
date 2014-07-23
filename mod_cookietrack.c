@@ -320,9 +320,13 @@ static int spot_cookie(request_rec *r)
         }
     }
 
-    /* Is DNT set? */
-    const char *dnt_is_set = apr_table_get( r->headers_in, "DNT" );
-    _DEBUG && fprintf( stderr, "DNT: %s\n", dnt_is_set );
+    /* Is DNT set? 
+       It IS if the header was provided, and the value is not 0 (explicitly disabled by user)
+    */
+    const char *dnt_header_value = apr_table_get( r->headers_in, "DNT" );
+    int dnt_is_set = (dnt_header_value != NULL) && (strcasecmp(dnt_header_value, "0") != 0) ? 1 : 0;
+
+    _DEBUG && fprintf( stderr, "DNT: %s - DNT Enabled: %d\n", dnt_header_value, dnt_is_set );
 
     // XXX This doesn't work because SetEnv/SetEnvIf code isn't run until APR_HOOK_MIDDLE,
     // at which point this code has already run :(
@@ -339,8 +343,7 @@ static int spot_cookie(request_rec *r)
 
     // Only bother checking if DNT was set to begin with and we have a list
     // of browser regexes to filter against.
-
-    if( (dcfg->dnt_exempt_browser->nelts > 0) && (dnt_is_set != NULL) ) {
+    if( (dcfg->dnt_exempt_browser->nelts > 0) && dnt_is_set ) {
 
         char *ua = NULL;
         if( (ua = apr_pstrdup( r->pool, apr_table_get( r->headers_in, "User-Agent" )) ) ) {
