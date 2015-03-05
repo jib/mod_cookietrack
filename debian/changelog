@@ -1,0 +1,6 @@
+libapache2-mod-cookietrack (1.10.0-1) unstable; urgency=low
+
+  * Initial debian packaging
+
+ -- Jos Boumans <jos@dwim.org>  Thu, 05 Mar 2015 21:12:28 +0000
+

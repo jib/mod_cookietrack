@@ -1,0 +1,13 @@
+Source: libapache2-mod-cookietrack
+Section: unknown
+Priority: extra
+Maintainer: Krux Operations Team <charlie@schluting.com>
+Build-Depends: cdbs, debhelper (>= 7), apache2-dev, perl, git-core
+Standards-Version: 3.8.3
+Homepage: https://github.com/krux/mod_cookietrack
+
+Package: libapache2-mod-cookietrack
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
