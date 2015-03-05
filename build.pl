@@ -8,8 +8,9 @@ use IPC::Cmd 'can_run';
 use Getopt::Long;
 
 my $debug   = 0;
+my $install = 0;
 my $apxs    = 'apxs2';
-my @flags   = do { no warnings; qw[-i -a -c -Wl,-Wall -Wl,-lm]; };
+my @flags   = do { no warnings; qw[-a -c -Wl,-Wall -Wl,-lm]; };
 my $my_lib  = 'mod_cookietrack.c';
 my @inc;
 my $lib;
@@ -22,6 +23,7 @@ GetOptions(
     "lib=s"     => \$lib,
     "inc=s@"    => \@inc,
     "link=s@"   => \@link,
+    install     => \$install,
 ) or die usage();
 
 unless( can_run( $apxs ) ) {
@@ -35,6 +37,9 @@ unless( can_run( $apxs ) ) {
 ### * -I to include other dirs
 
 my @cmd = ( $apxs, @flags );
+
+### By default we don't install, but with this flag we do.
+push @cmd, '-i' if $install;
 
 ### extra include dirs
 push @cmd, map { "-I $_" } $FindBin::Bin, @inc;

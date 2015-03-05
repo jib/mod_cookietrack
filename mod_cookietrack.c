@@ -26,6 +26,13 @@
 #include "http_core.h"
 #include "http_request.h"
 
+#include "http_log.h"
+#include "http_main.h"
+#include "http_protocol.h"
+#include "http_request.h"
+#include "util_script.h"
+#include "http_connection.h"
+
 #include <math.h>
 
 
@@ -320,7 +327,7 @@ static int spot_cookie(request_rec *r)
         }
     }
 
-    /* Is DNT set? 
+    /* Is DNT set?
        It IS if the header was provided, and the value is not 0 (explicitly disabled by user)
     */
     const char *dnt_header_value = apr_table_get( r->headers_in, "DNT" );
