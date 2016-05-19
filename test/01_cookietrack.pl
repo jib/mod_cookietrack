@@ -16,12 +16,14 @@ my $Base        = "http://localhost:7000/";
 my $Debug       = 0;
 my $CookieLen   = '24,36'; # default length is 24 to 36 chars: $ip.$microtime
 my $XFFSupport  = 1;
+my $TestPattern = '.*'; # run any tests
 
 GetOptions(
     'base=s'            => \$Base,
     'debug'             => \$Debug,
     'cookielength=s'    => \$CookieLen,
     'xff=i'             => \$XFFSupport,
+    'tests=s'           => \$TestPattern,
 );
 
 ### make sure we have a cookie the lenght of the default cookie
@@ -61,6 +63,9 @@ my $LCookie = $DName .'='. $LValue . $CAttr;
 my $IE9     = 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)';
 my $IE10    = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; WOW64; Trident/6.0)';
 
+my $BName   = $DName;
+my $BValue  = 'eyJ1dWlkIjp7IiB1IjoiZDUxODYxYTg1YTkxNDIxZGJmOTAyOGU2NTJmZjNjMGIifX0.Cah9hg.oGKRZnM95pjqaUe9t-EQl7qMzdI';
+my $BCookie = "__cfduid=d89800a4bc1ee9f7b227287a7d24157a01435568869; cX_S=ikfeb85v98hdn043; cX_P=ikfeb85wbcgpa5pr; session=eyJ1dWlkIjp7IiB1IjoiZDUxODYxYTg1YTkxNDIxZGJmOTAyOGU2NTJmZjNjMGIifX0.Cah9hg.oGKRZnM95pjqaUe9t-EQl7qMzdI; s_pers=%20s_nr%3D1457967298476-Repeat%7C1465743298476%3B%20bc%3D1%7C1458053698479%3B; s_sess=%20s_cc%3Dtrue%3B%20s_sq%3D%3B; fsr.a=1457967298564; fsr.s=%7B%22v2%22%3A-2%2C%22v1%22%3A1%2C%22rid%22%3A%22de07bd3-79144505-4f08-1f01-8054f%22%2C%22ru%22%3A%22http%3A%2F%2Fwww.google.com%2Furl%3Fq%3Dhttp%253A%252F%252Fdev.dianomi.com%252Fpartner%252Fnasdaq%252FiframeDemo%252FnasdaqDemo.epl%26sa%3DD%26sntz%3D1%26usg%3DAFQjCNGw64T_PskWaMQdEtLzzYrWoWNMPw%22%2C%22r%22%3A%22www.google.com%22%2C%22st%22%3A%22http%3A%2F%2Fdev.dianomi.com%2Fpartner%2Fnasdaq%2FiframeDemo%2FnasdaqDemo.epl%22%2C%22to%22%3A3%2C%22c%22%3A%22http%3A%2F%2Fdev.dianomi.com%2Fpartner%2Fnasdaq%2FiframeDemo%2FnasdaqDemo.epl%22%2C%22pv%22%3A1%2C%22lc%22%3A%7B%22d0%22%3A%7B%22v%22%3A1%2C%22s%22%3Afalse%7D%7D%2C%22cd%22%3A0%7D; BIGipServerPOOL-212.100.237.224-443=650294026.20736.0000; djangoSessionId=ab997d3773cef1b2399ed0af4b8c58d6; __utma=86428557.1169378542.1435570010.1463066992.1463560681.56; __utmc=86428557; __utmz=86428557.1463560681.56.34.utmcsr=dianomioffers.co.uk|utmccn=(referral)|utmcmd=referral|utmcct=/; " . $DName .'='. $BValue . "; mod_auth_openidc_session=e2dbe9dc-caed-4e0f-9e63-114c0fee473b";
 
 ### Making sure the expiry is in the future
 my $_ExpSub   = sub {
@@ -281,6 +286,18 @@ my %Map     = (
             domain          => $AllUnset,
         },
     },
+    bug => {
+        use_cookie          => $BCookie,
+        headers             => {},
+        cookies => {        # COOKIE NO     YES
+            $DName          => [ [ $CookieRe, $BValue ], # DNT OFF
+                                 [ "DNT",    "DNT"   ], # DNT ON
+                               ],
+            $KName          => $AllUnset,
+            expires         => $AllUnset,
+            domain          => $AllUnset,
+        },
+    },
     ### test alternate cookie styles - testing code mostly copied
     ### from basic_expires, but adding domain tests.
     basic_expires_cookie => {
@@ -468,11 +485,20 @@ if( $XFFSupport ) {
     };
 }
 
-for my $endpoint ( sort keys %Map ) {
-    ### Don't send DNT, then set to 0, then set to 1
-    for my $dnt_set ( undef,  0, 1 ) {
-        for my $send_cookie ( 0, 1 ) {
-            _do_test( $endpoint, $dnt_set, $send_cookie );
+{   my $test_match = qr/$TestPattern/;
+
+    for my $endpoint ( sort keys %Map ) {
+
+        unless( $endpoint =~ $test_match ) {
+            diag("Endpoint $endpoint does not match $TestPattern - skipping");
+            next;
+        }
+
+        ### Don't send DNT, then set to 0, then set to 1
+        for my $dnt_set ( undef,  0, 1 ) {
+            for my $send_cookie ( 0, 1 ) {
+                _do_test( $endpoint, $dnt_set, $send_cookie );
+            }
         }
     }
 }
@@ -572,3 +598,4 @@ sub _simple_cookie_parse {
 
     return %rv;
 }
+
