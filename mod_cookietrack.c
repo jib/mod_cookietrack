@@ -427,6 +427,9 @@ static int spot_cookie(request_rec *r)
     /* Make sure we have enough room here by adding an extra char of space. */
     char new_cookie_value[ _MAX_COOKIE_LENGTH + 1 ];
 
+    _DEBUG && fprintf( stderr, "Maximum supported cookie length: %d\n", _MAX_COOKIE_LENGTH );
+
+
     // dnt is set, and we care about that and this request is NOT explicitly exempt
     if( dnt_is_set && dcfg->comply_with_dnt && !request_is_dnt_exempt ) {
 
