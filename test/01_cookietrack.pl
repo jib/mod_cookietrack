@@ -19,7 +19,7 @@ my $XFFSupport  = 1;
 my $TestPattern = '.*'; # run any tests
 
 ### Maximum size of cookies - make sure we get at least that much data back
-### for longer cookies. 140 is the default in mod_cookietrack.c. Change that,
+### for longer cookies. 40 is the default in mod_cookietrack.c. Change that,
 ### change this.
 my $CookieMaxLen = 40;
 
