@@ -15,4 +15,4 @@ case $RELEASE in
   *) echo "Release not supported - update this script please!" && exit 1;;
 esac
 
-$BIN -d `pwd` -f `pwd`/test/httpd.conf.$CONF -X -k start
+$BIN -d `pwd` -f `pwd`/test/conf/httpd.conf.$CONF -X -k start
