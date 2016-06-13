@@ -21,7 +21,7 @@ my $TestPattern = '.*'; # run any tests
 ### Maximum size of cookies - make sure we get at least that much data back
 ### for longer cookies. 140 is the default in mod_cookietrack.c. Change that,
 ### change this.
-my $CookieMaxLen = 140;
+my $CookieMaxLen = 40;
 
 GetOptions(
     'base=s'            => \$Base,
