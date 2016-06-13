@@ -10,4 +10,4 @@ LoadModule cookietrack_module .libs/mod_cookietrack.so
 
 User apache
 
-Include conf/httpd.conf.base
+Include test/conf/httpd.conf.base

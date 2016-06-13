@@ -1,5 +1,4 @@
 #!/bin/sh
-set -x
 BIN=apache2ctl
 
 ### If you're on an older OS, you may not have apache2ctl, so use a
