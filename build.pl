@@ -30,7 +30,8 @@ GetOptions(
 
 unless( can_run( $apxs ) ) {
     die "Could not find '$apxs' in your path.\n\n" .
-        "On Ubuntu/Debian, try 'sudo apt-get install apache2-dev'\n\n";
+        "On Ubuntu/Debian, try 'sudo apt-get install apache2-dev'\n\n" .
+        "Or specify explicity with --apxs /path/to/apxs[2]\n\n";
 }
 
 ### from apxs man page:
