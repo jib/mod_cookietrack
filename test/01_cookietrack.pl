@@ -18,6 +18,11 @@ my $CookieLen   = '24,36'; # default length is 24 to 36 chars: $ip.$microtime
 my $XFFSupport  = 1;
 my $TestPattern = '.*'; # run any tests
 
+### Maximum size of cookies - make sure we get at least that much data back
+### for longer cookies. 140 is the default in mod_cookietrack.c. Change that,
+### change this.
+my $CookieMaxLen = 140;
+
 GetOptions(
     'base=s'            => \$Base,
     'debug'             => \$Debug,
@@ -66,7 +71,7 @@ my $IE10    = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; WOW64; Triden
 ### https://github.com/jib/mod_cookietrack/issues/4
 ### Cookies that are too long cause buffer overflows on Centos
 my $B4name   = $DName;
-my $B4value  = 'rlW1qJyxVwc7VvO1VwbvMQHkBQLkLGt1LGxkAQVkMTWzBGNlBTH2AGWzMwAwZTVvsK0.Pnu9ut.bTXEMaZ95cwdnHr9g-RDy7dZmqV';
+my $B4value  = 'rlW1qJyxVwc7VvO1VwbvMQHkBQLkLGt1LGxkAQVkMTWzBGNlBTH2AGWzMwAwZTVvsK0.Pnu9ut.bTXEMaZ95cwdnHr9g-RDy7dZmqV-rlW1qJyxVwc7VvO1VwbvMQHkBQLkLGt1LGxkAQVkMTWzBGNlBTH2AGWzMwAwZTVvsK0.Pnu9ut.bTXEMaZ95cwdnHr9g-RDy7dZmqV';
 my $B4cookie = "_psqhvq=q89800n4op1rr9s7o227287n7q24157n01435568869; pK_F=vxsro85i98uqa043; pK_C=vxsro85joptcn5ce; frffvba=rlW1qJyxVwc7VvO1VwbvMQHkBQLkLGt1LGxkAQVkMTWzBGNlBTH2AGWzMwAwZTVvsK0.Pnu9ut.bTXEMaZ95cwdnHr9g-RDy7dZmqV; f_cref=%20f_ae%3Q1457967298476-Ercrng%7P1465743298476%3O%20op%3Q1%7P1458053698479%3O; f_frff=%20f_pp%3Qgehr%3O%20f_fd%3Q%3O; sfe.n=1457967298564; sfe.f=%7O%22i2%22%3N-2%2P%22i1%22%3N1%2P%22evq%22%3N%22qr07oq3-79144505-4s08-1s01-8054s%22%2P%22eh%22%3N%22uggc%3N%2S%2Sjjj.tbbtyr.pbz%2Shey%3Sd%3Quggc%253N%252S%252Sqri.kkkkkkkkkk.pbz%252Scnegare%252Sanfqnd%252SvsenzrQrzb%252SanfqndQrzb.rcy%26fn%3QQ%26fagm%3Q1%26hft%3QNSDwPATj64G_CfxJnZDqRgYmmLeJbJAZCj%22%2P%22e%22%3N%22jjj.tbbtyr.pbz%22%2P%22fg%22%3N%22uggc%3N%2S%2Sqri.kkkkkkkkkk.pbz%2Scnegare%2Sanfqnd%2SvsenzrQrzb%2SanfqndQrzb.rcy%22%2P%22gb%22%3N3%2P%22p%22%3N%22uggc%3N%2S%2Sqri.kkkkkkkkk.pbz%2Scnegare%2Sanfqnd%2SvsenzrQrzb%2SanfqndQrzb.rcy%22%2P%22ci%22%3N1%2P%22yp%22%3N%7O%22q0%22%3N%7O%22i%22%3N1%2P%22f%22%3Nsnyfr%7Q%7Q%2P%22pq%22%3N0%7Q; OVTvcFreireCBBY-212.100.237.224-443=650294026.20736.0000; qwnatbFrffvbaVq=no997q3773prs1o2399rq0ns4o8p58q6; __hgzn=86428557.1169378542.1435570010.1463066992.1463560681.56; __hgzp=86428557; __utmc=86428557; __utmz=86428557.1463560681.56.34.utmcsr=xxxxxxxxxxxxxxxx.co.uk|utmccn=(referral)|utmcmd=referral|utmcct=/; " . $DName .'='. $B4value . "; mod_auth_openidc_session=e2dbe9dc-caed-4e0f-9e63-114c0fee473b";
 
 ### Making sure the expiry is in the future
@@ -292,7 +297,7 @@ my %Map     = (
         use_cookie          => $B4cookie,
         headers             => {},
         cookies => {        # COOKIE NO     YES
-            $DName          => [ [ $CookieRe, $B4value ], # DNT OFF
+            $DName          => [ [ $CookieRe, substr($B4Value, 0, $CookieMaxLen) ], # DNT OFF
                                  [ "DNT",    "DNT"   ], # DNT ON
                                ],
             $KName          => $AllUnset,
