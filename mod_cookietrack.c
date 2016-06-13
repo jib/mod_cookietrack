@@ -70,8 +70,9 @@ module AP_MODULE_DECLARE_DATA cookietrack_module;
 #ifdef MAX_COOKIE_LENGTH        // maximum size of the cookie value
 #define _MAX_COOKIE_LENGTH MAX_COOKIE_LENGTH
 #else
-#define _MAX_COOKIE_LENGTH 140   // At least IP address + dots + microsecond timestamp
-#endif                          // So 16 + 4 + 16 = 36
+#define _MAX_COOKIE_LENGTH 140  // At least IP address + dots + microsecond timestamp
+#endif                          // So 16 + 4 + 16 = 36. 140 to support legacy cookies
+                                // users may have as well
 
 #ifdef DEBUG                    // To print diagnostics to the error log
 #define _DEBUG 1                // enable through gcc -DDEBUG
