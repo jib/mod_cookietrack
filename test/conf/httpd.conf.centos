@@ -1,0 +1,13 @@
+### for proxying to the node server
+LoadModule proxy_module /usr/lib64/httpd/modules/mod_proxy.so
+LoadModule proxy_balancer_module /usr/lib64/httpd/modules/mod_proxy_balancer.so
+LoadModule proxy_http_module /usr/lib64/httpd/modules/mod_proxy_http.so
+LoadModule log_config_module /usr/lib64/httpd/modules/mod_log_config.so
+
+### the module to be tested
+LoadModule cookietrack_module .libs/mod_cookietrack.so
+#LoadModule cookietrack_module /usr/lib64/httpd/modules/mod_cookietrack.so
+
+User apache
+
+Include conf/httpd.conf.base

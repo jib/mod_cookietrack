@@ -1,15 +1,7 @@
-### for proxying to the node server
-LoadModule proxy_module /usr/lib/apache2/modules/mod_proxy.so
-LoadModule proxy_balancer_module /usr/lib/apache2/modules/mod_proxy_balancer.so
-LoadModule proxy_http_module /usr/lib/apache2/modules/mod_proxy_http.so
-
-### the module to be tested
-#LoadModule cookietrack_module .libs/mod_cookietrack.so
-LoadModule cookietrack_module /usr/lib/apache2/modules/mod_cookietrack.so
+### base config, to be included from a release specific config in this directory
 
 ErrorLog test/error.log
 PidFile test/httpd.pid
-User www-data
 
 LogFormat '{"TS":"%{%s}t","XFF":"%{X-FORWARDED-FOR}i","DefaultCookie":"%{Apache}C","CustomCookie":"%{uuid}C","DNT":"%{DNT}i","PATH":"%U","QS":"%q","RESP":"%>s","IncomingCookie":"%{Cookie}i","OutgoingCookie":"%{Set-Cookie}o","NoteCookie":"%{cookie}n","GeneratedCookie":"%{cookie_generated}n"}' cookietrack
 

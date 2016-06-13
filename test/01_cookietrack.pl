@@ -27,6 +27,7 @@ GetOptions(
     'base=s'            => \$Base,
     'debug'             => \$Debug,
     'cookielength=s'    => \$CookieLen,
+    'maxcookielength=s' => \$CookieMaxLen,
     'xff=i'             => \$XFFSupport,
     'tests=s'           => \$TestPattern,
 );
