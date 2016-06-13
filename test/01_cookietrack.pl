@@ -298,7 +298,7 @@ my %Map     = (
         use_cookie          => $B4cookie,
         headers             => {},
         cookies => {        # COOKIE NO     YES
-            $DName          => [ [ $CookieRe, substr($B4Value, 0, $CookieMaxLen) ], # DNT OFF
+            $DName          => [ [ $CookieRe, substr($B4value, 0, $CookieMaxLen) ], # DNT OFF
                                  [ "DNT",    "DNT"   ], # DNT ON
                                ],
             $KName          => $AllUnset,
