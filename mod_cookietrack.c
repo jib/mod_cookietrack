@@ -71,7 +71,7 @@ module AP_MODULE_DECLARE_DATA cookietrack_module;
 #define _MAX_COOKIE_LENGTH MAX_COOKIE_LENGTH
 #else
 #define _MAX_COOKIE_LENGTH 40   // At least IP address + dots + microsecond timestamp
-#endif                          // So 16 + 4 + 16 = 36
+#endif                          // So 16 + 4 + 16 = 36.
 
 #ifdef DEBUG                    // To print diagnostics to the error log
 #define _DEBUG 1                // enable through gcc -DDEBUG
@@ -424,8 +424,10 @@ static int spot_cookie(request_rec *r)
     _DEBUG && fprintf( stderr, "Remote Address: %s\n", rname );
 
     /* Determine the value of the cookie we're going to set: */
-    /* Make sure we have enough room here... */
-    char new_cookie_value[ _MAX_COOKIE_LENGTH ];
+    /* Make sure we have enough room here by adding an extra char of space. */
+    char new_cookie_value[ _MAX_COOKIE_LENGTH + 1 ];
+
+    _DEBUG && fprintf( stderr, "Maximum supported cookie length: %d\n", _MAX_COOKIE_LENGTH );
 
     // dnt is set, and we care about that and this request is NOT explicitly exempt
     if( dnt_is_set && dcfg->comply_with_dnt && !request_is_dnt_exempt ) {

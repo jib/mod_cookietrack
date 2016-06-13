@@ -15,20 +15,23 @@ my $my_lib  = 'mod_cookietrack.c';
 my @inc;
 my $lib;
 my @link;
+my $length;
 
 GetOptions(
-    debug       => \$debug,
-    "apxs=s"    => \$apxs,
-    "flags=s@"  => \@flags,
-    "lib=s"     => \$lib,
-    "inc=s@"    => \@inc,
-    "link=s@"   => \@link,
-    install     => \$install,
+    debug               => \$debug,
+    "apxs=s"            => \$apxs,
+    "flags=s@"          => \@flags,
+    "lib=s"             => \$lib,
+    "inc=s@"            => \@inc,
+    "link=s@"           => \@link,
+    "cookielength=s"    => \$length,
+    install             => \$install,
 ) or die usage();
 
 unless( can_run( $apxs ) ) {
     die "Could not find '$apxs' in your path.\n\n" .
-        "On Ubuntu/Debian, try 'sudo apt-get install apache2-dev'\n\n";
+        "On Ubuntu/Debian, try 'sudo apt-get install apache2-dev'\n\n" .
+        "Or specify explicity with --apxs /path/to/apxs[2]\n\n";
 }
 
 ### from apxs man page:
@@ -46,6 +49,9 @@ push @cmd, map { "-I $_" } $FindBin::Bin, @inc;
 
 ### libraries to link against
 push @cmd, map { "-Wl,-l$_" } @link;
+
+### custom cookie lenght?
+push @cmd, "-DMAX_COOKIE_LENGTH=$length" if $length;
 
 ### enable debug?
 push @cmd, "-Wc,-DDEBUG" if $debug;
@@ -83,7 +89,8 @@ sub usage {
     my $me = $FindBin::Script;
 
     return qq[
-  $me [--debug] [--lib=foo.c | --lib=foo.o] [--inc /some/dir,..] [--link some_lib]
+  $me [-i] [--debug] [--lib=foo.c | --lib=foo.o] [--inc /some/dir,..] [--link some_lib]
+      [--cookielength NUM] [--apxs /path/to/apxs] [--flags ANY_CUSTOM_APXS=FLAGS]
 
     \n];
 }
