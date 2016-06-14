@@ -33,7 +33,7 @@ and aims to fix a lot of the issues with it. In no particular order:
   always be the same IP (for example, 10.0.0.1) and does not add to
   the uniqueness of the UUID.
 
-  mod_cookietrack addresses this by optionally looking at the a header
+  mod_cookietrack addresses this by optionally looking at a header
   of your choosing (the industry standard is 'X-Forwarded-For') and
   using the right most IP in that to determine the remote IP.
 
